@@ -33,7 +33,7 @@ def cli(ctx, course, url, key):
     if course:
         course = canvas.get_course(course)
     else:
-        with open(Path("lms/structure.yml"), encoding="utf-8") as f:
+        with open(Path("lms/lms.yml"), encoding="utf-8") as f:
             global_metadata = yaml.safe_load(f)
             course = canvas.get_course(global_metadata["canvas_page_id"])
     ctx.obj = Configuration(canvas, course)

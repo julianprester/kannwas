@@ -180,7 +180,7 @@ def create_or_update_assignment(
 
 
 def publish(canvas, course, lms_path):
-    yml = Template(filename=Path(lms_path / "structure.yml").as_posix()).render()
+    yml = Template(filename=Path(lms_path / "lms.yml").as_posix()).render()
     global_metadata = yaml.safe_load(yml)
 
     create_frontpage(
