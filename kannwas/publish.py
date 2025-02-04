@@ -1,0 +1,214 @@
+import os
+from pathlib import Path
+import re
+import yaml
+import frontmatter
+import docker
+from datetime import datetime
+
+client = docker.from_env()
+
+
+def create_frontpage(course, lms_path: Path, page_path: Path, global_metadata):
+    metadata = frontmatter.load(page_path)
+    output = client.containers.run(
+        image="pandoc/latex",
+        remove=True,
+        volumes=[f"{page_path.parent.absolute()}:/data/"],
+        command=[page_path.name, "-f", "markdown", "-t", "html"],
+    )
+
+    page_content = replace_file_links(course, lms_path, output.decode("UTF-8"), global_metadata)
+    page_content = replace_template_placeholders(page_content, global_metadata)
+
+    frontpage = {
+        "title": metadata["title"],
+        "published": metadata["published"],
+        "body": page_content,
+    }
+    course.edit_front_page(wiki_page=frontpage)
+
+
+def create_module(course, lms_path: Path, module_dict, global_metadata):
+    pages = [
+        create_page(course, lms_path, lms_path / Path(page), global_metadata) for page in module_dict["pages"]
+    ]
+    modules_mapping = {module.name: module.id for module in course.get_modules()}
+
+    module_data = {"name": module_dict["title"], "published": module_dict["published"]}
+    if "unlock_at" in module_dict.keys():
+        module_data["unlock_at"] = module_dict["unlock_at"]
+    if module_dict["title"] in modules_mapping.keys():
+        module = course.get_module(modules_mapping[module_dict["title"]])
+        module.edit(module=module_data)
+    else:
+        module = course.create_module(module=module_data)
+
+    module_items = [module_item.title for module_item in module.get_module_items()]
+
+    for page in pages:
+        if page.title not in module_items:
+            module_item_data = {"type": "Page", "page_url": page.url}
+            module.create_module_item(module_item=module_item_data)
+
+
+def create_page(course, lms_path: Path, page_path: Path, global_metadata):
+    metadata = frontmatter.load(page_path)
+    output = client.containers.run(
+        image="pandoc/latex",
+        remove=True,
+        volumes=[f"{page_path.parent.absolute()}:/data/"],
+        command=[page_path.name, "-f", "markdown", "-t", "html"],
+    )
+
+    page_content = replace_file_links(course, lms_path, output.decode("UTF-8"), global_metadata)
+    page_content = replace_template_placeholders(page_content, global_metadata)
+
+    pages_mapping = {page.title: page.url for page in course.get_pages()}
+
+    page_data = {
+        "title": metadata["title"],
+        "published": metadata["published"],
+        "body": page_content,
+    }
+    if metadata["title"] in pages_mapping.keys():
+        page = course.get_page(pages_mapping[metadata["title"]])
+        page.edit(wiki_page=page_data)
+    else:
+        page = course.create_page(wiki_page=page_data)
+    return page
+
+
+def replace_template_placeholders(page_content, global_metadata):
+    placeholders = re.findall(r"{{(.*)}}", page_content)
+    for placeholder in placeholders:
+        page_content = page_content.replace(
+            "{{" + placeholder + "}}", global_metadata[placeholder]
+        )
+    placeholders = re.findall(r"%7B%7B(.*)%7D%7D", page_content)
+    for placeholder in placeholders:
+        page_content = page_content.replace(
+            "%7B%7B" + placeholder + "%7D%7D", global_metadata[placeholder]
+        )
+    return page_content
+
+
+def replace_file_links(course, lms_path: Path, page_content, global_metadata):
+    links = re.findall(r'href="(lecture\/.*|assessments\/.*|extra\/.*)"', page_content)
+    for link in links:
+        path = lms_path.parent / "build" / link
+        if not path.exists():
+            page_content = page_content.replace(
+                link, f"/courses/{global_metadata['canvas_page_id']}/"
+            )
+        else:
+            file = course.upload(path)
+            page_content = page_content.replace(
+                link,
+                f"/courses/{global_metadata['canvas_page_id']}/files/{file[1]['id']}",
+            )
+    return page_content
+
+
+def create_or_update_discussion(canvas, lms_path: Path, course, discussion_path: Path, global_metadata):
+    metadata = frontmatter.load(discussion_path.absolute())
+    output = client.containers.run(
+        image="pandoc/latex",
+        remove=True,
+        volumes=[f"{discussion_path.parent.absolute()}:/data/"],
+        command=[discussion_path.name, "-f", "markdown", "-t", "html"],
+    )
+
+    page_content = replace_file_links(course, lms_path, output.decode("UTF-8"), global_metadata)
+    page_content = replace_template_placeholders(page_content, global_metadata)
+
+    discussion_data = {
+        "title": metadata["title"],
+        "message": page_content,
+        "discussion_type": metadata.get("discussion_type", "threaded"),
+        "published": metadata.get("published", True),
+        "delayed_post_at": metadata.get("delayed_post_at", None),
+        "is_announcement": metadata.get("is_announcement", False),
+    }
+
+    for discussion in course.get_discussion_topics():
+        if discussion.title == metadata["title"]:
+            discussion.update(**discussion_data)
+            return discussion
+
+    for announcement in canvas.get_announcements(
+        [course],
+        start_date=datetime(2010, 1, 1, 0, 1),
+        end_date=datetime(2999, 1, 1, 0, 1),
+    ):
+        if announcement.title == metadata["title"]:
+            announcement.update(**discussion_data)
+            return announcement
+
+    discussion = course.create_discussion_topic(**discussion_data)
+    return discussion
+
+
+def create_or_update_assignment_group(course, lms_path, title, assignments, global_metadata):
+    group = None
+    for assignment_group in course.get_assignment_groups():
+        if assignment_group.name == title:
+            group = assignment_group
+            break
+    if not group:
+        group = course.create_assignment_group(name=title)
+    for assignment_path in assignments:
+        create_or_update_assignment(course, lms_path, group, lms_path / Path(assignment_path), global_metadata)
+
+
+def create_or_update_assignment(course, lms_path: Path, group, assignment_path: Path, global_metadata):
+    metadata = frontmatter.load(assignment_path.absolute())
+    output = client.containers.run(
+        image="pandoc/latex",
+        remove=True,
+        volumes=[f"{assignment_path.parent.absolute()}:/data/"],
+        command=[assignment_path.name, "-f", "markdown", "-t", "html"],
+    )
+
+    page_content = replace_file_links(course, lms_path, output.decode("UTF-8"), global_metadata)
+    page_content = replace_template_placeholders(page_content, global_metadata)
+
+    assignment_data = {
+        "name": metadata["name"],
+        "published": metadata["published"],
+        "unlock_at": metadata.get("unlock_at", None),
+        "position": metadata.get("position", 1),
+        "submission_types": metadata.get("submission_types", "none"),
+        "grading_type": metadata.get("grading_type", "points"),
+        "points_possible": metadata.get("points_possible", 100),
+        "description": page_content,
+        "due_at": metadata.get("due_at", None),
+        "lock_at": metadata.get("lock_at", None),
+        "assignment_group_id": group.id,
+    }
+
+    assignment = None
+    for course_assignment in course.get_assignments():
+        if course_assignment.name == assignment_data["name"]:
+            assignment = course_assignment
+            break
+    if not assignment:
+        assignment = course.create_assignment(assignment=assignment_data)
+    else:
+        assignment.edit(assignment=assignment_data)
+    return assignment
+
+
+def publish(canvas, course, lms_path):
+    with open(lms_path / "structure.yml", encoding="utf-8") as f:
+        global_metadata = yaml.safe_load(f)
+        create_frontpage(course, lms_path, lms_path / Path(global_metadata["frontpage"]), global_metadata)
+
+        for _, module in global_metadata["modules"].items():
+            create_module(course, lms_path, module, global_metadata)
+
+        for discussion in global_metadata["discussions"]:
+            create_or_update_discussion(canvas, lms_path, course, lms_path / Path(discussion), global_metadata)
+
+        for _, assignment_group in global_metadata["assignments"].items():
+            create_or_update_assignment_group(course, lms_path, assignment_group["title"], assignment_group["assignments"], global_metadata)
