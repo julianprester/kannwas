@@ -217,6 +217,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pydantic" },
     { name = "python-frontmatter" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -231,6 +232,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "python-frontmatter", specifier = ">=1.1.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
 [[package]]
