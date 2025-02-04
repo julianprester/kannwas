@@ -1,0 +1,27 @@
+[project]
+name = "kannwas"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Julian Prester", email = "hi@julianprester.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "canvasapi>=3.3.0",
+    "click>=8.1.8",
+    "docker>=7.1.0",
+    "markdownify>=0.14.1",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.1",
+    "pandas>=2.2.3",
+    "pydantic>=2.10.6",
+    "python-frontmatter>=1.1.0",
+]
+
+[project.scripts]
+kannwas = "kannwas.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
