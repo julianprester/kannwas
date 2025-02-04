@@ -28,12 +28,13 @@ def build_assessments(in_path, build_path):
 
     for file in os.listdir(in_path):
         if file.endswith(".md"):
+            metadata_file = Path(file).with_suffix(".yml")
             client.containers.run(
                 image="julianprester/pandoc-assessments",
                 auto_remove=True,
                 detach=False,
                 volumes=[f'{in_path.absolute()}:/data/'],
-                command=[file, "-d", file],
+                command=[file, "-d", metadata_file.as_posix()],
             )
     move_build_artefacts(in_path, "*.pdf", build_path)
 
