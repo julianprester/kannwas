@@ -22,21 +22,16 @@ class Configuration(object):
 
 
 @click.group()
-@click.option("-c", "--course", help="Course key")
-@click.option("--url", default=os.getenv("CANVAS_URL"), help="Canvas URL")
 @click.option("--key", default=os.getenv("CANVAS_API_KEY"), help="Canvas API key")
 @click.pass_context
-def cli(ctx, course, url, key):
+def cli(ctx, key):
     """
     A CLI to interact with a Canvas course
     """
-    canvas = Canvas(url, key)
-    if course:
-        course = canvas.get_course(course)
-    else:
-        yml = Template(filename=Path("lms/lms.yml").as_posix()).render()
-        global_metadata = yaml.safe_load(yml)
-        course = canvas.get_course(global_metadata["canvas_page_id"])
+    yml = Template(filename=Path("lms/lms.yml").as_posix()).render()
+    global_metadata = yaml.safe_load(yml)
+    canvas = Canvas(global_metadata["canvas_url"], key)
+    course = canvas.get_course(global_metadata["canvas_page_id"])
     ctx.obj = Configuration(canvas, course)
 
 
