@@ -5,6 +5,7 @@ import click
 import os
 from canvasapi import Canvas
 import yaml
+from mako.template import Template
 
 from kannwas.assignment import updateDueDates
 from kannwas.build import build_assessments, build_lectures
@@ -33,9 +34,9 @@ def cli(ctx, course, url, key):
     if course:
         course = canvas.get_course(course)
     else:
-        with open(Path("lms/lms.yml"), encoding="utf-8") as f:
-            global_metadata = yaml.safe_load(f)
-            course = canvas.get_course(global_metadata["canvas_page_id"])
+        yml = Template(filename=Path("lms/lms.yml").as_posix()).render()
+        global_metadata = yaml.safe_load(yml)
+        course = canvas.get_course(global_metadata["canvas_page_id"])
     ctx.obj = Configuration(canvas, course)
 
 
