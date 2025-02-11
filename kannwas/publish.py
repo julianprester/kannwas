@@ -12,7 +12,10 @@ client = docker.from_env()
 
 def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
     lookup = TemplateLookup(directories=[(lms_path / "templates").as_posix()])
-    md = Template(filename=path.as_posix(), lookup=lookup).render(**global_metadata)
+    with open(path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+        escaped = re.sub(r'(?m)^(#{1,6})\s+', r'${"\1"} ', md_text)
+    md = Template(escaped, lookup=lookup).render(**global_metadata)
     metadata = frontmatter.loads(md)
     escaped_md = md.replace('"', '\\"').replace("'", "\\'")
     page_content = client.containers.run(
