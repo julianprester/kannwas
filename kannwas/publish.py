@@ -1,4 +1,5 @@
 from mako.template import Template
+from mako.lookup import TemplateLookup
 from pathlib import Path
 import re
 import yaml
@@ -9,8 +10,9 @@ from datetime import datetime
 client = docker.from_env()
 
 
-def load_markdown(path: Path, global_metadata: dict):
-    md = Template(filename=path.as_posix()).render(**global_metadata)
+def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
+    lookup = TemplateLookup(directories=[(lms_path / "templates").as_posix()])
+    md = Template(filename=path.as_posix(), lookup=lookup).render(**global_metadata)
     metadata = frontmatter.loads(md)
     escaped_md = md.replace('"', '\\"').replace("'", "\\'")
     page_content = client.containers.run(
@@ -40,7 +42,7 @@ def replace_file_links(course, lms_path: Path, page_content, global_metadata):
 
 
 def create_frontpage(course, lms_path: Path, page_path: Path, global_metadata):
-    metadata, page_content = load_markdown(page_path, global_metadata)
+    metadata, page_content = load_markdown(page_path, lms_path, global_metadata)
 
     page_content = replace_file_links(course, lms_path, page_content, global_metadata)
 
@@ -77,7 +79,7 @@ def create_module(course, lms_path: Path, module_dict, global_metadata):
 
 
 def create_page(course, lms_path: Path, page_path: Path, global_metadata):
-    metadata, page_content = load_markdown(page_path, global_metadata)
+    metadata, page_content = load_markdown(page_path, lms_path, global_metadata)
 
     page_content = replace_file_links(course, lms_path, page_content, global_metadata)
 
@@ -99,7 +101,7 @@ def create_page(course, lms_path: Path, page_path: Path, global_metadata):
 def create_or_update_discussion(
     canvas, lms_path: Path, course, discussion_path: Path, global_metadata
 ):
-    metadata, page_content = load_markdown(discussion_path, global_metadata)
+    metadata, page_content = load_markdown(discussion_path, lms_path, global_metadata)
 
     page_content = replace_file_links(course, lms_path, page_content, global_metadata)
 
@@ -149,7 +151,7 @@ def create_or_update_assignment_group(
 def create_or_update_assignment(
     course, lms_path: Path, group, assignment_path: Path, global_metadata
 ):
-    metadata, page_content = load_markdown(assignment_path, global_metadata)
+    metadata, page_content = load_markdown(assignment_path, lms_path, global_metadata)
 
     page_content = replace_file_links(course, lms_path, page_content, global_metadata)
 
