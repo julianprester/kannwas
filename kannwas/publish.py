@@ -7,8 +7,6 @@ import frontmatter
 import docker
 from datetime import datetime
 
-client = docker.from_env()
-
 
 def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
     lookup = TemplateLookup(directories=[(lms_path / "templates").as_posix()])
@@ -18,6 +16,7 @@ def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
     md = Template(escaped, lookup=lookup).render(**global_metadata)
     metadata = frontmatter.loads(md)
     escaped_md = md.replace('"', '\\"').replace("'", "\\'")
+    client = docker.from_env()
     page_content = client.containers.run(
         image="pandoc/latex",
         remove=True,
