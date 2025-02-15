@@ -14,9 +14,9 @@ def move_build_artefacts(src_dir: Path, src_pattern: str, dest_root: Path):
 def copy_assets(build_path: Path):
     dest_folder = build_path / "lecture" / "assets"
     shutil.rmtree(dest_folder, ignore_errors=True)
-    shutil.copytree("lecture/assets", dest_folder)
+    shutil.copytree("./lecture/assets", dest_folder)
 
-    for folder in Path("lecture").glob("**/assets"):
+    for folder in Path("./lecture").glob("**/assets"):
         dest_folder = build_path / folder
         shutil.rmtree(dest_folder, ignore_errors=True)
         shutil.copytree(folder, dest_folder)

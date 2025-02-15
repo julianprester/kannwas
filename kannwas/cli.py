@@ -28,7 +28,7 @@ def cli(ctx, key):
     """
     A CLI to interact with a Canvas course
     """
-    yml = Template(filename=Path("lms/lms.yml").as_posix()).render()
+    yml = Template(filename=Path("./lms/lms.yml").as_posix()).render()
     global_metadata = yaml.safe_load(yml)
     canvas = Canvas(global_metadata["canvas_url"], key)
     course = canvas.get_course(global_metadata["canvas_page_id"])
@@ -66,17 +66,17 @@ def build(lecture, assessments, output):
 def clean():
     """Clean the build"""
     click.echo("Cleaning the build")
-    shutil.rmtree("build", ignore_errors=True)
+    shutil.rmtree("./build", ignore_errors=True)
 
 
 @cli.command()
-@click.option("--lms", default="lms", help="Specify the lms input directory")
+@click.option("--lms", default="./lms", help="Specify the lms input directory")
 @click.pass_context
 def publish(ctx, lms):
     """Publish the application."""
     click.echo("Building the learning materials")
-    build_assessments(Path("assessments"), Path("build"))
-    build_lectures(Path("lecture"), Path("build"))
+    build_assessments(Path("./assessments"), Path("./build"))
+    build_lectures(Path("./lecture"), Path("./build"))
     click.echo("Publishing to Canvas")
     _publish(ctx.obj.canvas, ctx.obj.course, Path(lms))
 
