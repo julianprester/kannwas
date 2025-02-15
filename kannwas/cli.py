@@ -6,6 +6,7 @@ import os
 from canvasapi import Canvas
 import yaml
 from mako.template import Template
+import docker
 
 from kannwas.assignment import updateDueDates
 from kannwas.build import build_assessments, build_lectures
@@ -27,6 +28,14 @@ def cli(ctx):
     """
     A CLI to interact with a Canvas course
     """
+    try:
+        docker.from_env()
+    except docker.errors.DockerException:
+        click.echo("Docker is not installed or running. If inside Docker environment make sure to bind /var/run/docker.sock")
+        exit(1)
+    if "CANVAS_API_KEY" not in os.environ:
+        click.echo("CANVAS_API_KEY environment variable not set")
+        exit(1)
     if not Path("./lms/lms.yml").exists():
         click.echo("Does not appear to be a course template (lms.yml missing)")
         exit(1)
