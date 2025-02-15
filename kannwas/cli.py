@@ -74,9 +74,6 @@ def clean():
 @click.pass_context
 def publish(ctx, lms):
     """Publish the application."""
-    click.echo("Building the learning materials")
-    build_assessments(Path("./assessments"), Path("./build"))
-    build_lectures(Path("./lecture"), Path("./build"))
     click.echo("Publishing to Canvas")
     _publish(ctx.obj.canvas, ctx.obj.course, Path(lms))
 
