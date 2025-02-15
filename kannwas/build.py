@@ -1,7 +1,6 @@
 from pathlib import Path
 import os
 import docker
-from docker.types import Mount
 import glob
 import shutil
 
@@ -34,7 +33,7 @@ def build_assessments(in_path, build_path):
                 image="julianprester/pandoc-assessments",
                 auto_remove=True,
                 detach=False,
-                mounts=[Mount(type="volume", source="course", target="/data")],
+                volumes=[f'{in_path.absolute()}:/data/'],
                 command=[file, "-d", metadata_file.as_posix()],
             )
     move_build_artefacts(in_path, "*.pdf", build_path)
