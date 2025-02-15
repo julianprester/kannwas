@@ -22,15 +22,17 @@ class Configuration(object):
 
 
 @click.group()
-@click.option("--key", default=os.getenv("CANVAS_API_KEY"), help="Canvas API key")
 @click.pass_context
-def cli(ctx, key):
+def cli(ctx):
     """
     A CLI to interact with a Canvas course
     """
+    if not Path("./lms/lms.yml").exists():
+        click.echo("Does not appear to be a course template (lms.yml missing)")
+        exit(1)
     yml = Template(filename=Path("./lms/lms.yml").as_posix()).render()
     global_metadata = yaml.safe_load(yml)
-    canvas = Canvas(global_metadata["canvas_url"], key)
+    canvas = Canvas(global_metadata["canvas_url"], os.getenv("CANVAS_API_KEY"))
     course = canvas.get_course(global_metadata["canvas_page_id"])
     ctx.obj = Configuration(canvas, course)
 
