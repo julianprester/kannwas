@@ -18,7 +18,7 @@ def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
     escaped_md = md.replace('"', '\\"').replace("'", "\\'")
     client = docker.from_env()
     page_content = client.containers.run(
-        image="pandoc/latex:3.6",
+        image="pandoc/latex:3.6-ubuntu",
         remove=True,
         entrypoint="sh -c",
         command=[f'echo "{escaped_md}" | pandoc -f markdown -t html'],
