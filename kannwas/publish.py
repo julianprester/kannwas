@@ -4,8 +4,8 @@ from pathlib import Path
 import re
 import yaml
 import frontmatter
-import docker
 from datetime import datetime
+import markdown
 
 
 def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
@@ -15,15 +15,15 @@ def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
         escaped = re.sub(r'(?m)^(#{1,6})\s+', r'${"\1"} ', md_text)
     md = Template(escaped, lookup=lookup).render(**global_metadata)
     metadata = frontmatter.loads(md)
-    escaped_md = md.replace('"', '\\"').replace("'", "\\'")
-    client = docker.from_env()
-    page_content = client.containers.run(
-        image="pandoc/latex:3.6-ubuntu",
-        remove=True,
-        entrypoint="sh -c",
-        command=[f'echo "{escaped_md}" | pandoc -f markdown -t html'],
-    )
-    return metadata, page_content.decode("UTF-8")
+    # escaped_md = md.replace('"', '\\"').replace("'", "\\'")
+    # page_content = client.containers.run(
+    #     image="pandoc/latex:3.6-ubuntu",
+    #     remove=True,
+    #     entrypoint="sh -c",
+    #     command=[f'echo "{escaped_md}" | pandoc -f markdown -t html'],
+    # )
+    page_content = markdown.markdown(metadata.content)
+    return metadata, page_content
 
 
 def replace_file_links(course, lms_path: Path, page_content, global_metadata):
