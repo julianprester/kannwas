@@ -8,21 +8,15 @@ from datetime import datetime
 import markdown
 
 
-def load_markdown(path: Path, lms_path: Path, global_metadata: dict):
+def load_markdown(course, path: Path, lms_path: Path, global_metadata: dict):
     lookup = TemplateLookup(directories=[(lms_path / "templates").as_posix()])
     with open(path, "r", encoding="utf-8") as f:
         md_text = f.read()
-        escaped = re.sub(r'(?m)^(#{1,6})\s+', r'${"\1"} ', md_text)
+        escaped = re.sub(r"(?m)^(#{1,6})\s+", r'${"\1"} ', md_text)
     md = Template(escaped, lookup=lookup).render(**global_metadata)
     metadata = frontmatter.loads(md)
-    # escaped_md = md.replace('"', '\\"').replace("'", "\\'")
-    # page_content = client.containers.run(
-    #     image="pandoc/latex:3.6-ubuntu",
-    #     remove=True,
-    #     entrypoint="sh -c",
-    #     command=[f'echo "{escaped_md}" | pandoc -f markdown -t html'],
-    # )
     page_content = markdown.markdown(metadata.content)
+    page_content = replace_file_links(course, lms_path, page_content, global_metadata)
     return metadata, page_content
 
 
@@ -44,9 +38,7 @@ def replace_file_links(course, lms_path: Path, page_content, global_metadata):
 
 
 def create_frontpage(course, lms_path: Path, page_path: Path, global_metadata):
-    metadata, page_content = load_markdown(page_path, lms_path, global_metadata)
-
-    page_content = replace_file_links(course, lms_path, page_content, global_metadata)
+    metadata, page_content = load_markdown(course, page_path, lms_path, global_metadata)
 
     frontpage = {
         "title": metadata["title"],
@@ -81,9 +73,7 @@ def create_module(course, lms_path: Path, module_dict, global_metadata):
 
 
 def create_page(course, lms_path: Path, page_path: Path, global_metadata):
-    metadata, page_content = load_markdown(page_path, lms_path, global_metadata)
-
-    page_content = replace_file_links(course, lms_path, page_content, global_metadata)
+    metadata, page_content = load_markdown(course, page_path, lms_path, global_metadata)
 
     pages_mapping = {page.title: page.url for page in course.get_pages()}
 
@@ -103,9 +93,9 @@ def create_page(course, lms_path: Path, page_path: Path, global_metadata):
 def create_or_update_discussion(
     canvas, lms_path: Path, course, discussion_path: Path, global_metadata
 ):
-    metadata, page_content = load_markdown(discussion_path, lms_path, global_metadata)
-
-    page_content = replace_file_links(course, lms_path, page_content, global_metadata)
+    metadata, page_content = load_markdown(
+        course, discussion_path, lms_path, global_metadata
+    )
 
     discussion_data = {
         "title": metadata["title"],
@@ -153,9 +143,9 @@ def create_or_update_assignment_group(
 def create_or_update_assignment(
     course, lms_path: Path, group, assignment_path: Path, global_metadata
 ):
-    metadata, page_content = load_markdown(assignment_path, lms_path, global_metadata)
-
-    page_content = replace_file_links(course, lms_path, page_content, global_metadata)
+    metadata, page_content = load_markdown(
+        course, assignment_path, lms_path, global_metadata
+    )
 
     assignment_data = {
         "name": metadata["name"],
