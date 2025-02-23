@@ -22,6 +22,7 @@ def load_markdown(course, path: Path, lms_path: Path, global_metadata: dict):
 
 def replace_file_links(course, lms_path: Path, page_content, global_metadata):
     links = re.findall(r'href="(lecture\/.*|assessments\/.*|extra\/.*)"', page_content)
+    images = re.findall(r'src="(images\/.*)"', page_content)
     for link in links:
         path = lms_path.parent / "build" / link
         if not path.exists():
@@ -33,6 +34,18 @@ def replace_file_links(course, lms_path: Path, page_content, global_metadata):
             page_content = page_content.replace(
                 link,
                 f"/courses/{global_metadata['canvas_page_id']}/files/{file[1]['id']}",
+            )
+    for image in images:
+        path = lms_path / image
+        if not path.exists():
+            page_content = page_content.replace(
+                image, f"/courses/{global_metadata['canvas_page_id']}/"
+            )
+        else:
+            file = course.upload(path)
+            page_content = page_content.replace(
+                image,
+                f"/courses/{global_metadata['canvas_page_id']}/files/{file[1]['id']}/preview",
             )
     return page_content
 
