@@ -13,7 +13,9 @@ def load_markdown(course, path: Path, lms_path: Path, global_metadata: dict):
     with open(path, "r", encoding="utf-8") as f:
         md_text = f.read()
         escaped = re.sub(r"(?m)^(#{1,6})\s+", r'${"\1"} ', md_text)
-    md = Template(escaped, lookup=lookup).render(**global_metadata)
+    metadata = frontmatter.loads(escaped)
+    merged = global_metadata | metadata.metadata
+    md = Template(escaped, lookup=lookup).render(**merged)
     metadata = frontmatter.loads(md)
     page_content = markdown.markdown(metadata.content, extensions=['extra'])
     page_content = replace_file_links(course, lms_path, page_content, global_metadata)
