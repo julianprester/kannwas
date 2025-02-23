@@ -29,7 +29,7 @@ def build_assessments(in_path, build_path):
         if file.endswith(".md"):
             metadata_file = Path(file).with_suffix(".yml")
             client.containers.run(
-                image="ghcr.io/re3-work/pandoc-assessments:main",
+                image="ghcr.io/re3-work/pandoc-assessments:latest",
                 auto_remove=True,
                 detach=False,
                 volumes=[f'{in_path.absolute()}:/data/'],
@@ -41,7 +41,7 @@ def build_assessments(in_path, build_path):
 def build_lectures(in_path, build_path):
     client = docker.from_env()
     client.containers.run(
-        image="ghcr.io/re3-work/marp-usbs:main",
+        image="ghcr.io/re3-work/marp-usbs:latest",
         auto_remove=True,
         detach=False,
         volumes=[f'{in_path.absolute()}:/home/marp/app/'],
@@ -59,7 +59,7 @@ def build_lectures(in_path, build_path):
     move_build_artefacts(in_path, "**/*.pdf", build_path)
 
     client.containers.run(
-        image="ghcr.io/re3-work/marp-usbs:main",
+        image="ghcr.io/re3-work/marp-usbs:latest",
         auto_remove=True,
         detach=False,
         volumes=[f'{in_path.absolute()}:/home/marp/app/'],
@@ -78,7 +78,7 @@ def build_lectures(in_path, build_path):
     copy_assets(build_path)
 
     # client.containers.run(
-    #     image="ghcr.io/re3-work/marp-usbs:main",
+    #     image="ghcr.io/re3-work/marp-usbs:latest",
     #     auto_remove=True,
     #     detach=False,
     #     volumes=[f'{in_path.absolute()}:/home/marp/app/'],
