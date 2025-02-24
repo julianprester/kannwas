@@ -17,7 +17,7 @@ def load_markdown(course, path: Path, lms_path: Path, global_metadata: dict):
     merged = global_metadata | metadata.metadata
     md = Template(escaped, lookup=lookup).render(**merged)
     metadata = frontmatter.loads(md)
-    page_content = markdown.markdown(metadata.content, extensions=['extra'])
+    page_content = markdown.markdown(metadata.content, extensions=["extra"])
     page_content = replace_file_links(course, lms_path, page_content, global_metadata)
     return metadata, page_content
 
@@ -185,7 +185,48 @@ def create_or_update_assignment(
         assignment = course.create_assignment(assignment=assignment_data)
     else:
         assignment.edit(assignment=assignment_data)
+
+    create_or_update_rubric(
+        course, metadata.get("rubric", []), assignment.name, assignment.id
+    )
     return assignment
+
+
+def create_or_update_rubric(course, new_rubric, assignment_title, assignment_id):
+    rubrics = course.get_rubrics()
+    for rubric in rubrics:
+        if rubric.title == assignment_title:
+            rubric.delete()
+            break
+
+    rubric = {
+        "title": assignment_title,
+        "criteria": {
+            str(id): {
+                "description": item["description"],
+                "ratings": {
+                    "1": {
+                        "description": "Full Marks",
+                        "points": float(item["max_points"]),
+                    },
+                    "2": {"description": "No Marks", "points": 0.0},
+                },
+            }
+            for id, item in enumerate(new_rubric, 1)
+        },
+    }
+
+    rubric = course.create_rubric(rubric=rubric)
+
+    rubric_association = {
+        "rubric_id": rubric["rubric"].id,
+        "association_type": "Assignment",
+        "association_id": assignment_id,
+        "use_for_grading": True,
+        "purpose": "grading",
+    }
+
+    course.create_rubric_association(rubric_association=rubric_association)
 
 
 def publish(canvas, course, lms_path):
