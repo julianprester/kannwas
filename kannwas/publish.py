@@ -186,9 +186,10 @@ def create_or_update_assignment(
     else:
         assignment.edit(assignment=assignment_data)
 
-    create_or_update_rubric(
-        course, metadata.get("rubric", []), assignment.name, assignment.id
-    )
+    if "rubric" in metadata.keys():
+        create_or_update_rubric(
+            course, metadata.get("rubric", []), assignment.name, assignment.id
+        )
     return assignment
 
 
