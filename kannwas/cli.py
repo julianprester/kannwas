@@ -133,8 +133,8 @@ def moderate(ctx, assignment):
 
 
 @cli.command()
-@click.option("--weeks", help="Number of weeks")
-@click.option("--questions", help="Number of questions")
+@click.option("--weeks", type=int, help="Number of weeks")
+@click.option("--questions", type=int, help="Number of questions")
 @click.argument("groups")
 def schedule(weeks, questions, groups):
     """Schedule the case study discussions"""
