@@ -12,7 +12,7 @@ from kannwas.build import build_assessments, build_lectures
 from kannwas.discussions import downloadDiscussions
 from kannwas.publish import publish as _publish
 from kannwas.roster import downloadRoster
-from kannwas.util import case_presentation_schedule, group_presentation_schedule
+from kannwas.util import generate_schedule
 
 
 class Configuration(object):
@@ -133,12 +133,10 @@ def moderate(ctx, assignment):
 
 
 @cli.command()
-@click.option("--case", is_flag=True, help="Is this a case study presentation?")
+@click.option("--weeks", help="Number of weeks")
+@click.option("--questions", help="Number of questions")
 @click.argument("groups")
-def schedule(case, groups):
+def schedule(weeks, questions, groups):
     """Schedule the case study discussions"""
     groups = groups.split(",")
-    if case:
-        click.echo(case_presentation_schedule(groups))
-    else:
-        click.echo(group_presentation_schedule(groups))
+    click.echo(generate_schedule(weeks, questions, groups))
