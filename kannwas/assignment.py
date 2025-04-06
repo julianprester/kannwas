@@ -13,11 +13,11 @@ def updateDueDates(course, assignment, _input):
         override.delete()
     df = pd.read_csv(_input)
 
-    if 'group_name' in df.columns:
+    if 'group' in df.columns:
         group_mapping = getGroups(course)
         for _, row in df.iterrows():
             assignment_override = {
-                'group_id': group_mapping[row.group_name],
+                'group_id': group_mapping[row.group],
                 'due_at': row['due_at'],
                 'lock_at': row['lock_at'],
                 'unlock_at': row['unlock_at']
@@ -25,13 +25,13 @@ def updateDueDates(course, assignment, _input):
             assignment.create_override(assignment_override=assignment_override)
         return
     
-    if 'student_id' in df.columns:
+    if 'id' in df.columns:
         grouped = df.groupby(['due_at', 'lock_at', 'unlock_at']).agg({
-            'student_id': lambda x: x.astype(str).tolist()
+            'id': lambda x: x.astype(str).tolist()
         }).reset_index()
         for index, row in grouped.iterrows():
             assignment_override = {
-                'student_ids': row.student_id,
+                'student_ids': row.id,
                 'title': f'extension-{index}',
                 'due_at': row['due_at'],
                 'lock_at': row['lock_at'],
