@@ -7,7 +7,7 @@ from canvasapi import Canvas
 import yaml
 from mako.template import Template
 
-from kannwas.assignment import updateDueDates
+from kannwas.assignment import updateDueDates, adjustMarks
 from kannwas.build import build_assessments, build_lectures
 from kannwas.discussions import downloadDiscussions
 from kannwas.publish import publish as _publish
@@ -124,12 +124,18 @@ def due(ctx, assignment, _input):
 
 @cli.command()
 @click.option("-a", "--assignment", help="Specify the assignment")
+@click.option(
+    "_input",
+    "-i",
+    "--input",
+    help="Specify the moderation input file",
+)
 @click.pass_context
-def moderate(ctx, assignment):
+def moderate(ctx, assignment, _input):
     """
     Moderate the marks of a section, group, or student
     """
-    updateDueDates(ctx.obj.course, assignment)
+    adjustMarks(ctx.obj.course, assignment, _input)
 
 
 @cli.command()
