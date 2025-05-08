@@ -2,7 +2,7 @@ import os
 import httpx
 import pandas as pd
 
-from models import PadletPost
+from kannwas.models import PadletPost
 
 USER_ENDPOINT = "https://api.padlet.dev/v1/me?include=boards"
 BOARD_ENDPOINT = "https://api.padlet.dev/v1/boards/{board_id}?include=posts%2Csections"
