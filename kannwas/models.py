@@ -17,3 +17,13 @@ class DiscussionEntry(BaseModel):
     message: str
     created_at: str
     updated_at: str
+
+class PadletPost(BaseModel):
+    id: str
+    section_id: str
+    section_title: str
+    board_id: str
+    board_title: str
+    username: str
+    content: str
+    color: Optional[str]

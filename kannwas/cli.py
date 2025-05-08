@@ -13,6 +13,7 @@ from kannwas.discussions import downloadDiscussions
 from kannwas.publish import publish as _publish
 from kannwas.roster import downloadRoster
 from kannwas.util import generate_schedule
+from kannwas.padlet import export_padlet
 
 
 class Configuration(object):
@@ -146,3 +147,18 @@ def schedule(weeks, questions, groups):
     """Schedule the case study discussions"""
     groups = groups.split(",")
     click.echo(generate_schedule(weeks, questions, groups))
+
+@cli.command()
+@click.option(
+    "-o",
+    "--output",
+    default="padlet.csv",
+    help="Specify the output file",
+)
+@click.pass_context
+def padlet(ctx, output):
+    """Download the Padlet posts"""
+    if "PADLET_API_KEY" not in os.environ:
+        click.echo("PADLET_API_KEY environment variable not set")
+        exit(1)
+    export_padlet(output)
