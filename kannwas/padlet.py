@@ -12,7 +12,7 @@ headers = {
     "x-api-key": os.getenv("PADLET_API_KEY")
 }
 
-def export_padlet(output):
+def export_padlet(color, output):
     user_response = httpx.get(USER_ENDPOINT, headers=headers)
 
     user_data = user_response.json()
@@ -38,7 +38,7 @@ def export_padlet(output):
     # save posts list to csv file using pandas
     df = pd.DataFrame([post.__dict__ for post in posts])
     # group the posts by username, i want a count for all posts that are color red and a count for all posts whose color is None, basically the dataframe should have three columns: username, red_count, none_count
-    df["pinned_count"] = df["color"].apply(lambda x: 1 if x == "red" else 0)
+    df["pinned_count"] = df["color"].apply(lambda x: 1 if x == color else 0)
     df["post_count"] = df["color"].apply(lambda x: 1 if x is None else 0)
     df = df.groupby("username").agg({"pinned_count": "sum", "post_count": "sum"}).reset_index()
     df.to_csv(output, index=False)

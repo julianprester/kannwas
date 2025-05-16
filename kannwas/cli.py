@@ -150,15 +150,21 @@ def schedule(weeks, questions, groups):
 
 @cli.command()
 @click.option(
+    "-c",
+    "--color",
+    default="red",
+    help="Specify the post color to count as pinned",
+)
+@click.option(
     "-o",
     "--output",
     default="padlet.csv",
     help="Specify the output file",
 )
 @click.pass_context
-def padlet(ctx, output):
+def padlet(ctx, color, output):
     """Download the Padlet posts"""
     if "PADLET_API_KEY" not in os.environ:
         click.echo("PADLET_API_KEY environment variable not set")
         exit(1)
-    export_padlet(output)
+    export_padlet(color, output)
