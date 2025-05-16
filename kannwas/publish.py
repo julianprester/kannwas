@@ -197,8 +197,8 @@ def create_or_update_rubric(course, new_rubric, assignment_title, assignment_id)
     rubrics = course.get_rubrics()
     for rubric in rubrics:
         if rubric.title == assignment_title:
-            rubric.delete()
-            break
+            print(f"{rubric.title} already exists, skipping...")
+            return
 
     rubric = {
         "title": assignment_title,
