@@ -37,8 +37,28 @@ def export_padlet(color, output):
 
     # save posts list to csv file using pandas
     df = pd.DataFrame([post.__dict__ for post in posts])
-    # group the posts by username, i want a count for all posts that are color red and a count for all posts whose color is None, basically the dataframe should have three columns: username, red_count, none_count
+
+    # Create pinned and post count columns
     df["pinned_count"] = df["color"].apply(lambda x: 1 if x == color else 0)
     df["post_count"] = df["color"].apply(lambda x: 1 if x is None else 0)
-    df = df.groupby("username").agg({"pinned_count": "sum", "post_count": "sum"}).reset_index()
-    df.to_csv(output, index=False)
+
+    # Group by username and section_title, then sum counts
+    grouped = df.groupby(["username", "section_title"]).agg({
+        "pinned_count": "sum", 
+        "post_count": "sum"
+    }).reset_index()
+
+    # Pivot to get section titles as columns
+    result = grouped.pivot(index="username", columns="section_title", values=["pinned_count", "post_count"])
+
+    # Convert NaN values to 0
+    result.fillna(0, inplace=True)
+
+    # Flatten column names
+    result.columns = [f"{section}_{count_type}" for count_type, section in result.columns]
+    result = result.reset_index()
+
+    result.to_csv(output, index=False)
+
+if __name__ == "__main__":
+    export_padlet("purple", "padlet-out.csv")
