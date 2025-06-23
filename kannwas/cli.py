@@ -56,16 +56,22 @@ def start(port):
     "--lecture", default="lecture", help="Specify the lecture input directory"
 )
 @click.option(
+    "--html/--no-html", default=True
+)
+@click.option(
+    "--pdf/--no-pdf", default=True
+)
+@click.option(
     "--assessments",
     default="assessments",
     help="Specify the assessments input directory",
 )
 @click.option("--output", default="build", help="Specify the build directory")
-def build(lecture, assessments, output):
+def build(lecture, html, pdf, assessments, output):
     """Build the materials"""
     click.echo("Building the learning materials")
     build_assessments(Path(assessments), Path(output))
-    build_lectures(Path(lecture), Path(output))
+    build_lectures(Path(lecture), html, pdf, Path(output))
 
 
 @cli.command()

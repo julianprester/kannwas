@@ -38,59 +38,43 @@ def build_assessments(in_path, build_path):
     move_build_artefacts(in_path, "*.pdf", build_path)
 
 
-def build_lectures(in_path, build_path):
+def build_lectures(in_path, html, pdf, build_path):
     client = docker.from_env()
-    client.containers.run(
-        image="ghcr.io/re3-work/marp-usbs:latest",
-        auto_remove=True,
-        detach=False,
-        volumes=[f'{in_path.absolute()}:/home/marp/app/'],
-        command=[
-            "--engine",
-            "/home/marp/core/engine.js",
-            "--theme",
-            "/home/marp/core/usbs.css",
-            "--allow-local-files",
-            "-I",
-            "--pdf",
-            ".",
-        ],
-    )
-    move_build_artefacts(in_path, "**/*.pdf", build_path)
+    if pdf:
+        client.containers.run(
+            image="ghcr.io/re3-work/marp-usbs:latest",
+            auto_remove=True,
+            detach=False,
+            volumes=[f'{in_path.absolute()}:/home/marp/app/'],
+            command=[
+                "--engine",
+                "/home/marp/core/engine.js",
+                "--theme",
+                "/home/marp/core/usbs.css",
+                "--allow-local-files",
+                "-I",
+                "--pdf",
+                ".",
+            ],
+        )
+        move_build_artefacts(in_path, "**/*.pdf", build_path)
 
-    client.containers.run(
-        image="ghcr.io/re3-work/marp-usbs:latest",
-        auto_remove=True,
-        detach=False,
-        volumes=[f'{in_path.absolute()}:/home/marp/app/'],
-        command=[
-            "--engine",
-            "/home/marp/core/engine.js",
-            "--theme",
-            "/home/marp/core/usbs.css",
-            "--allow-local-files",
-            "-I",
-            "--html",
-            ".",
-        ],
-    )
-    move_build_artefacts(in_path, "**/*.html", build_path)
-    copy_assets(build_path)
-
-    # client.containers.run(
-    #     image="ghcr.io/re3-work/marp-usbs:latest",
-    #     auto_remove=True,
-    #     detach=False,
-    #     volumes=[f'{in_path.absolute()}:/home/marp/app/'],
-    #     command=[
-    #         "--engine",
-    #         "/home/marp/core/engine.js",
-    #         "--theme",
-    #         "/home/marp/core/usbs.css",
-    #         "--allow-local-files",
-    #         "-I",
-    #         "--pptx",
-    #         ".",
-    #     ],
-    # )
-    # move_build_artefacts(in_path, "**/*.pptx", build_path)
+    if html:
+        client.containers.run(
+            image="ghcr.io/re3-work/marp-usbs:latest",
+            auto_remove=True,
+            detach=False,
+            volumes=[f'{in_path.absolute()}:/home/marp/app/'],
+            command=[
+                "--engine",
+                "/home/marp/core/engine.js",
+                "--theme",
+                "/home/marp/core/usbs.css",
+                "--allow-local-files",
+                "-I",
+                "--html",
+                ".",
+            ],
+        )
+        move_build_artefacts(in_path, "**/*.html", build_path)
+        copy_assets(build_path)
