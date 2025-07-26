@@ -8,7 +8,7 @@ import yaml
 from mako.template import Template
 
 from kannwas.assignment import updateDueDates, adjustMarks
-from kannwas.build import build_assessments, build_lectures
+from kannwas.build import build_assessments, build_lectures, copy_extras
 from kannwas.discussions import downloadDiscussions
 from kannwas.publish import publish as _publish
 from kannwas.roster import downloadRoster
@@ -72,14 +72,24 @@ def start(port):
     default="assessments",
     help="Specify the assessments input directory",
 )
+@click.option(
+    "--extras/--no-extras", default=True, help="Copy extra files"
+)
+@click.option(
+    "--extras_dir",
+    default="extra",
+    help="Specify the extra files input directory",
+)
 @click.option("--output", default="build", help="Specify the build directory")
-def build(lecture, lecture_dir, html, pdf, assessments, assessments_dir, output):
+def build(lecture, lecture_dir, html, pdf, assessments, assessments_dir, extras, extras_dir, output):
     """Build the materials"""
     click.echo("Building the learning materials")
     if assessments:
         build_assessments(Path(assessments_dir), Path(output))
     if lecture:
         build_lectures(Path(lecture_dir), html, pdf, Path(output))
+    if extras:
+        copy_extras(Path(extras_dir), Path(output))
 
 
 @cli.command()

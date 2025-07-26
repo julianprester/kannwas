@@ -1,26 +1,19 @@
 from pathlib import Path
 import os
-import docker
 import shutil
+import docker
 
 
-def move_build_artefacts(src_dir: Path, src_pattern: str, dest_root: Path):
-    for src_path in src_dir.glob(src_pattern):
+def copy_files(src_dir: Path, pattern: str, dest_root: Path, move: bool = True):
+    for src_path in src_dir.glob(pattern):
         dest_path = dest_root / src_path.relative_to(src_dir.parent)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
-        src_path.replace(dest_path)
-
-
-def copy_assets(build_path: Path):
-    dest_folder = build_path / "lecture" / "assets"
-    shutil.rmtree(dest_folder, ignore_errors=True)
-    shutil.copytree("./lecture/assets", dest_folder)
-
-    for folder in Path("./lecture").glob("**/assets"):
-        dest_folder = build_path / folder
-        shutil.rmtree(dest_folder, ignore_errors=True)
-        shutil.copytree(folder, dest_folder)
-
+        if move:
+            src_path.replace(dest_path)
+        if src_path.is_file():
+            shutil.copy2(src_path, dest_path)
+        elif src_path.is_dir():
+            shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
 
 def build_assessments(in_path, build_path):
     client = docker.from_env()
@@ -35,7 +28,8 @@ def build_assessments(in_path, build_path):
                 volumes=[f'{in_path.absolute()}:/data/'],
                 command=[file, "-d", metadata_file.as_posix()],
             )
-    move_build_artefacts(in_path, "*.pdf", build_path)
+    copy_files(in_path, "*.pdf", build_path, move=True)
+    copy_files(in_path, "*.csv", build_path, move=False)
 
 
 def build_lectures(in_path, html, pdf, build_path):
@@ -57,7 +51,7 @@ def build_lectures(in_path, html, pdf, build_path):
                 ".",
             ],
         )
-        move_build_artefacts(in_path, "**/*.pdf", build_path)
+        copy_files(in_path, "**/*.pdf", build_path, move=True)
 
     if html:
         client.containers.run(
@@ -76,5 +70,11 @@ def build_lectures(in_path, html, pdf, build_path):
                 ".",
             ],
         )
-        move_build_artefacts(in_path, "**/*.html", build_path)
-        copy_assets(build_path)
+        copy_files(in_path, "**/*.html", build_path, move=True)
+        copy_files(in_path, "assets/*.png", build_path, move=False)
+        copy_files(in_path, "**/assets/*.png", build_path, move=False)
+        copy_files(in_path, "assets/*.jpg", build_path, move=False)
+        copy_files(in_path, "**/assets/*.jpg", build_path, move=False)
+
+def copy_extras(in_path, build_path):
+    copy_files("./lms" / in_path, "*.pdf", build_path, move=False)
