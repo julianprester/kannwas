@@ -13,7 +13,7 @@ from kannwas.discussions import downloadDiscussions
 from kannwas.publish import publish as _publish
 from kannwas.roster import downloadRoster
 from kannwas.util import generate_schedule
-from kannwas.padlet import export_padlet
+from kannwas.padlet import export_padlet, create_qr_codes, create_html_qr_sections
 
 
 class Configuration(object):
@@ -192,3 +192,21 @@ def padlet(ctx, color, output):
         click.echo("PADLET_API_KEY environment variable not set")
         exit(1)
     export_padlet(color, output)
+
+@click.option(
+    "-i",
+    "--input",
+    default="padlet-setup.csv",
+    help="Specify the input CSV file with breakout room links",
+)
+@click.option(
+    "-o",
+    "--output",
+    default="./images",
+    help="Specify the output directory",
+)
+@click.pass_context
+def qr(ctx, input, output):
+    """Generate QR codes from a CSV file"""
+    create_qr_codes(Path(input), Path(output))
+    create_html_qr_sections(Path(input), Path(output))

@@ -17,9 +17,11 @@ dependencies = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.1",
     "pandas>=2.2.3",
+    "pillow>=11.3.0",
     "pydantic>=2.10.6",
     "python-frontmatter>=1.1.0",
     "pyyaml>=6.0.2",
+    "qrcode>=8.2",
 ]
 
 [project.scripts]

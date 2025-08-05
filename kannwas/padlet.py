@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 import httpx
 import pandas as pd
+import qrcode
 
 from kannwas.models import PadletPost
 
@@ -12,7 +14,51 @@ headers = {
     "x-api-key": os.getenv("PADLET_API_KEY")
 }
 
-def export_padlet(color, output):
+def create_qr_codes(input_file: Path, output_dir: Path):
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+
+    df = pd.read_csv(input_file)
+    for index, row in df.iterrows():
+        qr_code = f"{row['workshop']}-{row['week']:02}.png"
+        qr_code_path = output_dir / qr_code
+
+        img = qrcode.make(row['breakout_room_link'])
+        img.save(qr_code_path)
+
+def create_html_qr_sections(input_file: Path, output_dir: Path):
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+
+    df = pd.read_csv(input_file)
+    
+    template = """
+<details>
+  <summary style="background-color: #f04e23; cursor: pointer; padding: 10px; border: 1px solid #efefee; color: white;"><strong>Workshop {section}</strong></summary>
+  <div class="pad-box-mini border-round" style="border: ridge #e64626; padding: 10px;">
+    <a href="{link}" target="_blank"><img alt="Padlet {section} Week ${{week_nr}}" src="images/{section_lower}-${{f'{{week_nr:02d}}'}}.png" /></a>
+    <a href="{link}">Join Padlet {section} Week ${{week_nr}}</a>
+  </div>
+</details>"""
+
+    with open(output_dir / "qr-sections.md", "w") as f:
+        f.write("# Padlet QR Code Sections for each Week")
+
+        df['week'] = df['week'].astype(int)
+        weeks = df['week'].unique()
+        for week_nr in weeks:
+            f.write(f"\n\n## Week {week_nr}\n")
+            week_df = df[df['week'] == week_nr]
+
+            for index, row in week_df.iterrows():
+                output = template.format(
+                    section=row['workshop'].upper(),
+                    section_lower=row['workshop'].lower(),
+                    link=row['breakout_room_link']
+                )
+                f.write(output)
+
+def export_padlet(color, output: Path):
     user_response = httpx.get(USER_ENDPOINT, headers=headers)
 
     user_data = user_response.json()
@@ -61,4 +107,4 @@ def export_padlet(color, output):
     result.to_csv(output, index=False)
 
 if __name__ == "__main__":
-    export_padlet("purple", "padlet-out.csv")
+    create_html_qr_sections(Path("C:/Users/julian/Development/infs6023/lms/images/padlet-setup.csv"), Path("C:/Users/julian/Development/infs6023/lms/images"))
