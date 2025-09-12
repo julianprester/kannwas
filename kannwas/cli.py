@@ -135,8 +135,6 @@ def discussions(ctx, output, topic):
     "_input",
     "-i",
     "--input",
-    required=True,
-    default="extensions.csv",
     help="Specify the extensions input file",
 )
 @click.pass_context

@@ -9,38 +9,55 @@ def getGroups(course):
     return {group.name: group.id for group in groups}
 
 def updateDueDates(course, assignment, _input):
-    assignment = course.get_assignment(assignment)
-    overrides = assignment.get_overrides()
-    for override in overrides:
-        override.delete()
-    df = pd.read_csv(_input)
+    if _input:
+        assignment = course.get_assignment(assignment)
+        overrides = assignment.get_overrides()
+        for override in overrides:
+            override.delete()
+        df = pd.read_csv(_input)
 
-    if 'group' in df.columns:
-        group_mapping = getGroups(course)
-        for _, row in df.iterrows():
-            assignment_override = {
-                'group_id': group_mapping[row.group],
-                'due_at': row['due_at'],
-                'lock_at': row['lock_at'],
-                'unlock_at': row['unlock_at']
-            }
-            assignment.create_override(assignment_override=assignment_override)
-        return
-    
-    if 'id' in df.columns:
-        grouped = df.groupby(['due_at', 'lock_at', 'unlock_at']).agg({
-            'id': lambda x: x.astype(str).tolist()
-        }).reset_index()
-        for index, row in grouped.iterrows():
-            assignment_override = {
-                'student_ids': row.id,
-                'title': f'extension-{index}',
-                'due_at': row['due_at'],
-                'lock_at': row['lock_at'],
-                'unlock_at': row['unlock_at']
-            }
-            assignment.create_override(assignment_override=assignment_override)
-        return
+        if 'group' in df.columns:
+            group_mapping = getGroups(course)
+            for _, row in df.iterrows():
+                assignment_override = {
+                    'group_id': group_mapping[row.group],
+                    'due_at': row['due_at'],
+                    'lock_at': row['lock_at'],
+                    'unlock_at': row['unlock_at']
+                }
+                assignment.create_override(assignment_override=assignment_override)
+            return
+        
+        if 'id' in df.columns:
+            grouped = df.groupby(['due_at', 'lock_at', 'unlock_at']).agg({
+                'id': lambda x: x.astype(str).tolist()
+            }).reset_index()
+            for index, row in grouped.iterrows():
+                assignment_override = {
+                    'student_ids': row.id,
+                    'title': f'extension-{index}',
+                    'due_at': row['due_at'],
+                    'lock_at': row['lock_at'],
+                    'unlock_at': row['unlock_at']
+                }
+                assignment.create_override(assignment_override=assignment_override)
+            return
+    else:
+        assignment = course.get_assignment(assignment)
+        students = getStudents(course)
+        export = []
+        for student in students:
+            export.append({
+                "id": student.id,
+                "sid": student.sid,
+                "unikey": student.unikey,
+                "group": student.group,
+                "due_at": assignment.due_at,
+                "lock_at": assignment.lock_at,
+                "unlock_at": assignment.unlock_at
+            })
+        df = pd.DataFrame(export)
+        df.to_csv("extensions.csv", index=False)
 
 
 def adjustMarks(course, assignment, _input):
@@ -110,5 +127,5 @@ if __name__ == "__main__":
         "https://canvas.sydney.edu.au",
         "3156~JMGW4FLGvDo1OoKKgC94ierxQmLHPjFr5X5E971SRMrq9t2r3ZtoFs7PA4lPdwM1",
     )
-    course = canvas.get_course(64650)
-    adjustMarks(course, 598408, "missing.csv")
+    course = canvas.get_course(67602)
+    updateDueDates(course, 635559, _input=None)
