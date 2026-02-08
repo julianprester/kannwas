@@ -15,6 +15,7 @@ def copy_files(src_dir: Path, pattern: str, dest_root: Path, move: bool = True):
         elif src_path.is_dir():
             shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
 
+
 def build_assessments(in_path, build_path):
     client = docker.from_env()
 
@@ -25,7 +26,7 @@ def build_assessments(in_path, build_path):
                 image="ghcr.io/re3-work/pandoc-assessments:latest",
                 auto_remove=True,
                 detach=False,
-                volumes=[f'{in_path.absolute()}:/data/'],
+                volumes=[f"{in_path.absolute()}:/data/"],
                 command=[file, "-d", metadata_file.as_posix()],
             )
     copy_files(in_path, "*.pdf", build_path, move=True)
@@ -34,12 +35,14 @@ def build_assessments(in_path, build_path):
 
 def build_lectures(in_path, html, pdf, build_path):
     client = docker.from_env()
+    marp_user = f"{os.getuid()}:{os.getgid()}"
     if pdf:
         client.containers.run(
             image="ghcr.io/re3-work/marp-usbs:latest",
             auto_remove=True,
             detach=False,
-            volumes=[f'{in_path.absolute()}:/home/marp/app/'],
+            volumes=[f"{in_path.absolute()}:/home/marp/app/"],
+            environment={"MARP_USER": marp_user},
             command=[
                 "--engine",
                 "/home/marp/core/engine.js",
@@ -58,7 +61,8 @@ def build_lectures(in_path, html, pdf, build_path):
             image="ghcr.io/re3-work/marp-usbs:latest",
             auto_remove=True,
             detach=False,
-            volumes=[f'{in_path.absolute()}:/home/marp/app/'],
+            volumes=[f"{in_path.absolute()}:/home/marp/app/"],
+            environment={"MARP_USER": marp_user},
             command=[
                 "--engine",
                 "/home/marp/core/engine.js",
@@ -75,6 +79,7 @@ def build_lectures(in_path, html, pdf, build_path):
         copy_files(in_path, "**/assets/*.png", build_path, move=False)
         copy_files(in_path, "assets/*.jpg", build_path, move=False)
         copy_files(in_path, "**/assets/*.jpg", build_path, move=False)
+
 
 def copy_extras(in_path, build_path):
     copy_files("./lms" / in_path, "*.pdf", build_path, move=False)
