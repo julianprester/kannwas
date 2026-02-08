@@ -28,10 +28,12 @@ def replace_file_links(course, lms_path: Path, page_content, global_metadata):
     for link in links:
         path = lms_path.parent / "build" / link
         if not path.exists():
+            print(f"  Warning: File not found, skipping upload: {path}")
             page_content = page_content.replace(
                 link, f"/courses/{global_metadata['canvas_page_id']}/"
             )
         else:
+            print(f"  Uploading: {path}")
             file = course.upload(path)
             page_content = page_content.replace(
                 link,
@@ -40,10 +42,12 @@ def replace_file_links(course, lms_path: Path, page_content, global_metadata):
     for image in images:
         path = lms_path / image
         if not path.exists():
+            print(f"  Warning: Image not found, skipping upload: {path}")
             page_content = page_content.replace(
                 image, f"/courses/{global_metadata['canvas_page_id']}/"
             )
         else:
+            print(f"  Uploading: {path}")
             file = course.upload(path)
             page_content = page_content.replace(
                 image,
