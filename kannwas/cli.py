@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import timedelta
 import shutil
 import subprocess
 import click
@@ -8,12 +9,22 @@ import yaml
 from mako.template import Template
 
 from kannwas.assignment import updateDueDates, adjustMarks
-from kannwas.build import build_assessments, build_lectures, copy_extras
+from kannwas.build import (
+    build_assessments,
+    build_lectures,
+    copy_extras,
+    load_week_1,
+    render_assessment_file,
+)
 from kannwas.discussions import downloadDiscussions
 from kannwas.publish import publish as _publish
 from kannwas.roster import downloadRoster
 from kannwas.util import generate_schedule
 from kannwas.padlet import export_padlet, create_qr_codes, create_html_qr_sections
+
+
+# Commands that don't require Canvas API access
+OFFLINE_COMMANDS = {"build", "clean", "start", "preprocess", "schedule"}
 
 
 class Configuration(object):
@@ -28,6 +39,11 @@ def cli(ctx):
     """
     A CLI to interact with a Canvas course
     """
+    # Skip Canvas initialization for offline commands
+    if ctx.invoked_subcommand in OFFLINE_COMMANDS:
+        ctx.obj = Configuration()
+        return
+
     if "CANVAS_API_KEY" not in os.environ:
         click.echo("CANVAS_API_KEY environment variable not set")
         exit(1)
@@ -52,36 +68,36 @@ def start(port):
 
 
 @cli.command()
-@click.option(
-    "--lecture/--no-lecture", default=True, help="Build lecture materials"
-)
+@click.option("--lecture/--no-lecture", default=True, help="Build lecture materials")
 @click.option(
     "--lecture_dir", default="lecture", help="Specify the lecture input directory"
 )
-@click.option(
-    "--html/--no-html", default=True, help="Build HTML lecture materials"
-)
-@click.option(
-    "--pdf/--no-pdf", default=True, help="Build PDF lecture materials"
-)
-@click.option(
-    "--assessments/--no-assessments", default=True, help="Build assessments"
-)
+@click.option("--html/--no-html", default=True, help="Build HTML lecture materials")
+@click.option("--pdf/--no-pdf", default=True, help="Build PDF lecture materials")
+@click.option("--assessments/--no-assessments", default=True, help="Build assessments")
 @click.option(
     "--assessments_dir",
     default="assessments",
     help="Specify the assessments input directory",
 )
-@click.option(
-    "--extras/--no-extras", default=True, help="Copy extra files"
-)
+@click.option("--extras/--no-extras", default=True, help="Copy extra files")
 @click.option(
     "--extras_dir",
     default="extra",
     help="Specify the extra files input directory",
 )
 @click.option("--output", default="build", help="Specify the build directory")
-def build(lecture, lecture_dir, html, pdf, assessments, assessments_dir, extras, extras_dir, output):
+def build(
+    lecture,
+    lecture_dir,
+    html,
+    pdf,
+    assessments,
+    assessments_dir,
+    extras,
+    extras_dir,
+    output,
+):
     """Build the materials"""
     click.echo("Building the learning materials")
     if assessments:
@@ -97,6 +113,67 @@ def clean():
     """Clean the build"""
     click.echo("Cleaning the build")
     shutil.rmtree("./build", ignore_errors=True)
+
+
+@cli.command()
+@click.option(
+    "--input",
+    "-i",
+    "input_dir",
+    default="assessments",
+    help="Specify the input directory containing Mako templates",
+)
+@click.option(
+    "--output",
+    "-o",
+    "output_dir",
+    default="assessments-rendered",
+    help="Specify the output directory for rendered files",
+)
+def preprocess(input_dir, output_dir):
+    """Preprocess Mako templates in assessment files.
+
+    This command renders Mako templates in .md and .yml files,
+    making week_1 and timedelta available for date calculations.
+    Useful for CI/CD pipelines where Docker-in-Docker isn't available.
+    """
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
+
+    if not input_path.exists():
+        click.echo(f"Error: Input directory '{input_path}' does not exist")
+        exit(1)
+
+    week_1 = load_week_1()
+    if not week_1:
+        click.echo(
+            "Warning: Could not load week_1 from lms/lms.yml, templates will not have date context"
+        )
+
+    # Clean and create output directory
+    if output_path.exists():
+        shutil.rmtree(output_path)
+    output_path.mkdir(parents=True)
+
+    click.echo(f"Preprocessing templates from '{input_path}' to '{output_path}'")
+
+    for item in input_path.iterdir():
+        if item.is_file() and item.suffix in (".md", ".yml"):
+            if week_1:
+                click.echo(f"  Rendering: {item.name}")
+                rendered = render_assessment_file(item, week_1)
+                (output_path / item.name).write_text(rendered)
+            else:
+                click.echo(f"  Copying (no week_1): {item.name}")
+                shutil.copy2(item, output_path / item.name)
+        elif item.is_dir():
+            click.echo(f"  Copying directory: {item.name}")
+            shutil.copytree(item, output_path / item.name, dirs_exist_ok=True)
+        elif item.is_file():
+            click.echo(f"  Copying: {item.name}")
+            shutil.copy2(item, output_path / item.name)
+
+    click.echo(f"Done. Rendered files are in '{output_path}'")
 
 
 @cli.command()
@@ -170,6 +247,7 @@ def schedule(weeks, questions, groups):
     groups = groups.split(",")
     click.echo(generate_schedule(weeks, questions, groups))
 
+
 @cli.command()
 @click.option(
     "-c",
@@ -190,6 +268,7 @@ def padlet(ctx, color, output):
         click.echo("PADLET_API_KEY environment variable not set")
         exit(1)
     export_padlet(color, output)
+
 
 @click.option(
     "-i",
