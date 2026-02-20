@@ -1,11 +1,32 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+import re
 import shutil
 import tempfile
 import docker
 import yaml
 from mako.template import Template
+
+
+# Placeholder for escaped markdown headings (using a string unlikely to appear in content)
+HEADING_PLACEHOLDER = "__MAKO_SAFE_HASH__"
+
+
+def escape_markdown_headings(content: str) -> str:
+    """Escape markdown headings (##, ###, etc.) to prevent Mako treating them as comments.
+
+    Mako uses ## as line comments, which conflicts with markdown headings.
+    This replaces ## at the start of lines with a placeholder before Mako processing.
+    """
+    # Match 2 or more # at the start of a line (markdown headings level 2+)
+    # We need to escape ##, ###, ####, etc. but not single #
+    return re.sub(r"^(#{2,})", HEADING_PLACEHOLDER + r"\1", content, flags=re.MULTILINE)
+
+
+def unescape_markdown_headings(content: str) -> str:
+    """Restore markdown headings after Mako processing."""
+    return content.replace(HEADING_PLACEHOLDER, "")
 
 
 def load_week_1():
@@ -22,8 +43,12 @@ def render_assessment_file(file_path: Path, week_1) -> str:
     """Render a Mako template file with week_1 context"""
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
-    template = Template(content)
-    return template.render(week_1=week_1, timedelta=timedelta)
+    # Escape markdown headings before Mako processing to prevent ## being treated as comments
+    escaped_content = escape_markdown_headings(content)
+    template = Template(escaped_content)
+    rendered = template.render(week_1=week_1, timedelta=timedelta)
+    # Restore markdown headings after Mako processing
+    return unescape_markdown_headings(rendered)
 
 
 def copy_files(
