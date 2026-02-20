@@ -270,6 +270,7 @@ def padlet(ctx, color, output):
     export_padlet(color, output)
 
 
+@cli.command()
 @click.option(
     "-i",
     "--input",
